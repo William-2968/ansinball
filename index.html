@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>雙打比賽記分板</title>
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAACp8GOEAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAC9JREFUeNpiYBgFo2AUjIJRMApqBiDqBUQxCoYJihEYjEowTqUwrHqAxA1zjGAAMA8u0BdbovKjcAAAAASUVORK5CYII=">
+  <style>
+    body { font-family: 'Helvetica Neue', sans-serif; margin: 0; padding: 2em; background: #f9f9f9; text-align: center; }
+    h1 { margin-bottom: 1em; }
+    .section { margin-bottom: 1.5em; }
+    .scoreboard { display: flex; justify-content: space-around; margin-top: 1em; }
+    .team { background: white; border-radius: 10px; padding: 1em; width: 40%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .score { font-size: 3em; margin: 0.3em 0; }
+    button { font-size: 1.2em; padding: 0.5em 1em; margin: 0.2em; border: none; border-radius: 5px; background-color: #4CAF50; color: white; }
+    .winner { font-size: 1.2em; color: green; margin-top: 1em; }
+    .history { background: #fff; margin-top: 2em; padding: 1em; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <h1>雙打比分記錄器</h1>
+  <div class="section">
+    <label>比賽類型：
+      <select id="gameType">
+        <option value="pingpong">桌球</option>
+        <option value="badminton">羽球</option>
+      </select>
+    </label>
+  </div>
+  <div class="section">
+    <input type="text" id="nameA" placeholder="A隊名稱" value="A隊">
+    <input type="text" id="nameB" placeholder="B隊名稱" value="B隊">
+  </div>
+  <div class="scoreboard">
+    <div class="team">
+      <h2 id="labelA">A隊</h2>
+      <div class="score" id="scoreA">0</div>
+      <button onclick="addPoint('A')">+1</button>
+      <button onclick="removePoint('A')">-1</button>
+    </div>
+    <div class="team">
+      <h2 id="labelB">B隊</h2>
+      <div class="score" id="scoreB">0</div>
+      <button onclick="addPoint('B')">+1</button>
+      <button onclick="removePoint('B')">-1</button>
+    </div>
+  </div>
+  <div class="winner" id="result"></div>
+  <button onclick="resetMatch()">🔁 重置比賽</button>
+  <div class="history">
+    <h3>歷史紀錄</h3>
+    <ul id="historyList" style="text-align: left;"></ul>
+  </div>
+  <script>
+    let scoreA = 0;
+    let scoreB = 0;
+
+    function getWinPoint() {
+      return document.getElementById("gameType").value === "pingpong" ? 11 : 21;
+    }
+
+    function updateLabels() {
+      document.getElementById("labelA").innerText = document.getElementById("nameA").value;
+      document.getElementById("labelB").innerText = document.getElementById("nameB").value;
+    }
+
+    function updateScore() {
+      updateLabels();
+      document.getElementById("scoreA").innerText = scoreA;
+      document.getElementById("scoreB").innerText = scoreB;
+      checkWinner();
+    }
+
+    function addPoint(team) {
+      if (team === 'A') scoreA++;
+      if (team === 'B') scoreB++;
+      updateScore();
+    }
+
+    function removePoint(team) {
+      if (team === 'A' && scoreA > 0) scoreA--;
+      if (team === 'B' && scoreB > 0) scoreB--;
+      updateScore();
+    }
+
+    function checkWinner() {
+      const win = getWinPoint();
+      const diff = Math.abs(scoreA - scoreB);
+      const nameA = document.getElementById("nameA").value;
+      const nameB = document.getElementById("nameB").value;
+      if ((scoreA >= win || scoreB >= win) && diff >= 2) {
+        const winner = scoreA > scoreB ? nameA : nameB;
+        document.getElementById("result").innerText = `🏆 ${winner} 獲勝！`;
+        saveHistory(nameA, nameB, scoreA, scoreB);
+      } else {
+        document.getElementById("result").innerText = "";
+      }
+    }
+
+    function resetMatch() {
+      scoreA = 0;
+      scoreB = 0;
+      updateScore();
+    }
+
+    function saveHistory(aName, bName, aScore, bScore) {
+      const record = `${aName} ${aScore} : ${bScore} ${bName}`;
+      let history = JSON.parse(localStorage.getItem("scoreHistory") || "[]");
+      history.unshift(record);
+      localStorage.setItem("scoreHistory", JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      let history = JSON.parse(localStorage.getItem("scoreHistory") || "[]");
+      const list = document.getElementById("historyList");
+      list.innerHTML = "";
+      history.slice(0, 10).forEach(item => {
+        const li = document.createElement("li");
+        li.innerText = item;
+        list.appendChild(li);
+      });
+    }
+
+    renderHistory();
+    updateLabels();
+  </script>
+</body>
+</html>
