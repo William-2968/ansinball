@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>球賽記分板</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自訂字體 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 淺灰色背景 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 調整對齊方式以更好地適應內容長度 */
+            min-height: 100vh; /* 確保至少佔滿視窗高度 */
+            padding: 1rem; /* 增加整體內邊距 */
+            box-sizing: border-box; /* 邊框盒模型 */
+        }
+        /* 主應用程式容器 */
+        #app-container {
+            width: 100%;
+            max-width: 500px; /* 限制最大寬度以適應手機螢幕 */
+            background-color: #ffffff; /* 白色背景 */
+            border-radius: 1.5rem; /* 大圓角 */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* 柔和陰影 */
+            padding: 1.5rem; /* 內部填充 */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* 各區塊間距 */
+        }
+        /* 記分板分數顯示 */
+        .score-display-text {
+            font-size: 5rem; /* 巨大分數 */
+            font-weight: bold;
+            color: #3b82f6; /* 藍色 */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); /* 分數陰影 */
+            min-width: 80px; /* 確保分數寬度足夠 */
+            text-align: center;
+        }
+        /* 按鈕基本樣式 */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem; /* 圓角按鈕 */
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            width: 100%; /* 確保按鈕寬度一致 */
+        }
+        /* +1 按鈕 */
+        .btn-plus {
+            background-color: #22c55e; /* 綠色 */
+            color: #ffffff;
+            font-size: 2.5rem; /* 大尺寸 +1 符號 */
+            line-height: 1; /* 行高調整 */
+            box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);
+        }
+        .btn-plus:hover {
+            background-color: #16a34a; /* 深綠色 */
+            transform: translateY(-2px); /* 輕微上浮效果 */
+        }
+        /* -1 按鈕 */
+        .btn-minus {
+            background-color: #ef4444; /* 紅色 */
+            color: #ffffff;
+            font-size: 2.5rem; /* 大尺寸 -1 符號 */
+            line-height: 1; /* 行高調整 */
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);
+        }
+        .btn-minus:hover {
+            background-color: #dc2626; /* 深紅色 */
+            transform: translateY(-2px); /* 輕微上浮效果 */
+        }
+        /* 重置按鈕 */
+        .btn-reset {
+            background-color: #60a5fa; /* 淺藍色 */
+            color: #ffffff;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 6px rgba(96, 165, 250, 0.2);
+        }
+        .btn-reset:hover {
+            background-color: #3b82f6; /* 深藍色 */
+            transform: translateY(-2px);
+        }
+        /* 隊伍名稱輸入 */
+        .team-name-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db; /* 淺灰色邊框 */
+            font-size: 1.125rem;
+            text-align: center;
+            outline: none; /* 移除點擊時的外框 */
+            transition: border-color 0.2s;
+        }
+        .team-name-input:focus {
+            border-color: #3b82f6; /* 焦點時變藍色 */
+        }
+        /* 歷史紀錄列表 */
+        #history-list {
+            list-style: none; /* 移除列表項目符號 */
+            padding: 0;
+            margin: 0;
+            max-height: 200px; /* 限制高度 */
+            overflow-y: auto; /* 超出時滾動 */
+            background-color: #f9fafb; /* 淺淺的背景色 */
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+        }
+        #history-list li {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #e5e7eb; /* 分隔線 */
+            font-size: 0.95rem;
+            color: #4b5563; /* 深灰色文字 */
+            display: flex;
+            justify-content: space-between; /* 左右對齊 */
+            align-items: center;
+        }
+        #history-list li:last-child {
+            border-bottom: none; /* 最後一個項目沒有分隔線 */
+        }
+        /* 獲勝訊息 */
+        #winner-message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #22c55e; /* 綠色 */
+            text-align: center;
+            margin-top: 1rem;
+        }
+        /* 停用按鈕樣式 */
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #9ca3af; /* 灰色 */
+            box-shadow: none;
+            transform: none;
+        }
+    </style>
+    <!-- PWA Manifest (Optional) -->
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="app-container">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-4">球賽記分板</h1>
+
+        <!-- 比賽類型選擇 -->
+        <div class="flex flex-col gap-3 p-4 bg-blue-50 rounded-xl">
+            <h2 class="text-lg font-semibold text-gray-700">選擇比賽類型：</h2>
+            <div class="flex justify-around items-center gap-4">
+                <label for="game-type-tt" class="flex items-center text-gray-700 text-lg cursor-pointer">
+                    <input type="radio" id="game-type-tt" name="gameType" value="tableTennis" class="mr-2 h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
+                    桌球 (11分制)
+                </label>
+                <label for="game-type-bm" class="flex items-center text-gray-700 text-lg cursor-pointer">
+                    <input type="radio" id="game-type-bm" name="gameType" value="badminton" class="mr-2 h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                    羽球 (21分制)
+                </label>
+            </div>
+        </div>
+
+        <!-- 隊伍名稱輸入 -->
+        <div class="flex flex-col md:flex-row justify-around gap-4 p-4 bg-green-50 rounded-xl">
+            <div class="flex flex-col items-center flex-1">
+                <label for="teamA-name-input" class="text-lg font-semibold text-gray-700 mb-2">A 隊名稱：</label>
+                <input type="text" id="teamA-name-input" class="team-name-input" value="A隊" placeholder="輸入A隊名稱">
+            </div>
+            <div class="flex flex-col items-center flex-1">
+                <label for="teamB-name-input" class="text-lg font-semibold text-gray-700 mb-2">B 隊名稱：</label>
+                <input type="text" id="teamB-name-input" class="team-name-input" value="B隊" placeholder="輸入B隊名稱">
+            </div>
+        </div>
+
+        <!-- 比分顯示與控制 -->
+        <div class="flex justify-between items-center bg-gray-100 p-6 rounded-xl shadow-inner">
+            <div class="flex flex-col items-center w-1/2 pr-2">
+                <p id="teamA-name" class="text-2xl font-bold text-gray-800 mb-2">A隊</p>
+                <p id="teamA-score" class="score-display-text">0</p>
+                <div class="flex gap-2 w-full mt-4">
+                    <button id="teamA-plus" class="btn btn-plus flex-1">+1</button>
+                    <button id="teamA-minus" class="btn btn-minus flex-1">-1</button>
+                </div>
+            </div>
+            <span class="text-5xl font-bold text-gray-600 mx-2">:</span>
+            <div class="flex flex-col items-center w-1/2 pl-2">
+                <p id="teamB-name" class="text-2xl font-bold text-gray-800 mb-2">B隊</p>
+                <p id="teamB-score" class="score-display-text">0</p>
+                <div class="flex gap-2 w-full mt-4">
+                    <button id="teamB-plus" class="btn btn-plus flex-1">+1</button>
+                    <button id="teamB-minus" class="btn btn-minus flex-1">-1</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 獲勝訊息 -->
+        <p id="winner-message" class="text-2xl font-bold text-center text-green-600 mt-4 hidden">🏆 XX隊獲勝</p>
+
+        <!-- 重置比賽按鈕 -->
+        <button id="reset-button" class="btn btn-reset mt-4">重置比賽</button>
+
+        <!-- 歷史紀錄 -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3">最近比賽紀錄 (最多10場)：</h2>
+            <ul id="history-list">
+                <!-- 歷史紀錄將在此處動態生成 -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // DOM 元素引用
+        const teamA_score_el = document.getElementById('teamA-score');
+        const teamB_score_el = document.getElementById('teamB-score');
+        const teamA_name_el = document.getElementById('teamA-name');
+        const teamB_name_el = document.getElementById('teamB-name');
+        const teamA_name_input = document.getElementById('teamA-name-input');
+        const teamB_name_input = document.getElementById('teamB-name-input');
+        const teamA_plus_btn = document.getElementById('teamA-plus');
+        const teamA_minus_btn = document.getElementById('teamA-minus');
+        const teamB_plus_btn = document.getElementById('teamB-plus');
+        const teamB_minus_btn = document.getElementById('teamB-minus');
+        const reset_btn = document.getElementById('reset-button');
+        const winner_message_el = document.getElementById('winner-message');
+        const game_type_tt_radio = document.getElementById('game-type-tt');
+        const game_type_bm_radio = document.getElementById('game-type-bm');
+        const history_list_el = document.getElementById('history-list');
+
+        // 遊戲狀態變數
+        let teamAScore = 0;
+        let teamBScore = 0;
+        let gameType = 'tableTennis'; // 預設為桌球
+        let teamAName = 'A隊';
+        let teamBName = 'B隊';
+        let isGameOver = false;
+        let gameHistory = [];
+
+        // 遊戲規則配置
+        const GAME_RULES = {
+            tableTennis: {
+                scoreToWin: 11,
+                maxScore: null, // 桌球沒有最高分限制，只要贏兩分
+                name: '桌球'
+            },
+            badminton: {
+                scoreToWin: 21,
+                maxScore: 30, // 羽球最高30分
+                name: '羽球'
+            }
+        };
+
+        // 初始化遊戲
+        function initGame() {
+            teamAScore = 0;
+            teamBScore = 0;
+            isGameOver = false;
+
+            // 從 localStorage 加載隊伍名稱，如果沒有則使用預設值
+            teamAName = localStorage.getItem('teamAName') || 'A隊';
+            teamBName = localStorage.getItem('teamBName') || 'B隊';
+
+            // 從 localStorage 加載遊戲類型，如果沒有則使用預設值
+            gameType = localStorage.getItem('gameType') || 'tableTennis';
+            if (gameType === 'tableTennis') {
+                game_type_tt_radio.checked = true;
+            } else {
+                game_type_bm_radio.checked = true;
+            }
+
+            // 加載歷史紀錄
+            loadHistory();
+
+            updateUI(); // 更新介面顯示
+            enableScoreButtons(); // 啟用記分按鈕
+            winner_message_el.classList.add('hidden'); // 隱藏獲勝訊息
+        }
+
+        // 更新介面顯示
+        function updateUI() {
+            teamA_score_el.textContent = teamAScore;
+            teamB_score_el.textContent = teamBScore;
+            teamA_name_el.textContent = teamAName;
+            teamB_name_el.textContent = teamBName;
+            teamA_name_input.value = teamAName;
+            teamB_name_input.value = teamBName;
+        }
+
+        // 更新分數
+        function updateScore(team, value) {
+            if (isGameOver) return; // 遊戲結束時不能記分
+
+            if (team === 'A') {
+                teamAScore = Math.max(0, teamAScore + value); // 分數不能低於0
+            } else {
+                teamBScore = Math.max(0, teamBScore + value); // 分數不能低於0
+            }
+            updateUI();
+            checkWinCondition(); // 每次分數變動都檢查勝負
+        }
+
+        // 檢查勝負條件
+        function checkWinCondition() {
+            const rules = GAME_RULES[gameType];
+            const scoreToWin = rules.scoreToWin;
+            const maxScore = rules.maxScore;
+
+            let winner = null;
+
+            if (maxScore && (teamAScore >= maxScore || teamBScore >= maxScore)) {
+                // 有最高分限制的比賽 (羽球)
+                if (teamAScore === maxScore && teamAScore - teamBScore >= 1) {
+                    winner = teamAName;
+                } else if (teamBScore === maxScore && teamBScore - teamAScore >= 1) {
+                    winner = teamBName;
+                }
+                // 如果雙方都達到最高分且平手，則下一分者獲勝
+                // 實際上，羽球30分是最高上限，先到30分的贏，不需要贏兩分
+                // 但為了通用性，保持贏兩分判斷，並在maxScore處判斷直接獲勝
+                if (teamAScore === maxScore && teamAScore > teamBScore) {
+                    winner = teamAName;
+                } else if (teamBScore === maxScore && teamBScore > teamAScore) {
+                    winner = teamBName;
+                }
+
+            } else if (teamAScore >= scoreToWin || teamBScore >= scoreToWin) {
+                // 達到基本贏分
+                const scoreDiff = Math.abs(teamAScore - teamBScore);
+                if (scoreDiff >= 2) {
+                    if (teamAScore > teamBScore) {
+                        winner = teamAName;
+                    } else {
+                        winner = teamBName;
+                    }
+                }
+            }
+
+            if (winner) {
+                isGameOver = true;
+                disableScoreButtons(); // 遊戲結束，禁用記分按鈕
+                displayWinner(winner); // 顯示獲勝訊息
+                saveGameResult(winner); // 儲存比賽結果
+            }
+        }
+
+        // 顯示獲勝訊息
+        function displayWinner(winnerName) {
+            winner_message_el.textContent = `🏆 ${winnerName} 獲勝`;
+            winner_message_el.classList.remove('hidden');
+        }
+
+        // 禁用記分按鈕
+        function disableScoreButtons() {
+            teamA_plus_btn.disabled = true;
+            teamA_minus_btn.disabled = true;
+            teamB_plus_btn.disabled = true;
+            teamB_minus_btn.disabled = true;
+        }
+
+        // 啟用記分按鈕
+        function enableScoreButtons() {
+            teamA_plus_btn.disabled = false;
+            teamA_minus_btn.disabled = false;
+            teamB_plus_btn.disabled = false;
+            teamB_minus_btn.disabled = false;
+        }
+
+        // 儲存比賽結果到 localStorage
+        function saveGameResult(winnerName) {
+            const gameResult = {
+                teamA: teamAName,
+                teamB: teamBName,
+                scoreA: teamAScore,
+                scoreB: teamBScore,
+                gameType: GAME_RULES[gameType].name,
+                winner: winnerName,
+                timestamp: new Date().toLocaleString()
+            };
+            
+            gameHistory.unshift(gameResult); // 將新結果添加到最前面
+            if (gameHistory.length > 10) {
+                gameHistory.pop(); // 保持最多10條記錄
+            }
+            localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
+            renderHistory(); // 更新歷史紀錄顯示
+        }
+
+        // 從 localStorage 加載歷史紀錄
+        function loadHistory() {
+            const storedHistory = localStorage.getItem('gameHistory');
+            if (storedHistory) {
+                gameHistory = JSON.parse(storedHistory);
+            } else {
+                gameHistory = [];
+            }
+            renderHistory();
+        }
+
+        // 渲染歷史紀錄列表
+        function renderHistory() {
+            history_list_el.innerHTML = ''; // 清空現有列表
+            if (gameHistory.length === 0) {
+                history_list_el.innerHTML = '<li class="text-center text-gray-500">尚無比賽紀錄</li>';
+                return;
+            }
+            gameHistory.forEach(record => {
+                const li = document.createElement('li');
+                let resultText = `${record.teamA} ${record.scoreA}:${record.scoreB} ${record.teamB} (${record.gameType})`;
+                if (record.winner) {
+                     resultText = `${record.winner} 🏆 - ${record.teamA} ${record.scoreA}:${record.scoreB} ${record.teamB} (${record.gameType})`;
+                }
+               
+                li.innerHTML = `<span>${resultText}</span><span class="text-xs text-gray-400">${record.timestamp.split(' ')[0]}</span>`; // 只顯示日期
+                history_list_el.appendChild(li);
+            });
+        }
+
+        // 事件監聽器
+        teamA_plus_btn.addEventListener('click', () => updateScore('A', 1));
+        teamA_minus_btn.addEventListener('click', () => updateScore('A', -1));
+        teamB_plus_btn.addEventListener('click', () => updateScore('B', 1));
+        teamB_minus_btn.addEventListener('click', () => updateScore('B', -1));
+
+        reset_btn.addEventListener('click', initGame); // 重置遊戲
+
+        teamA_name_input.addEventListener('input', (e) => {
+            teamAName = e.target.value;
+            localStorage.setItem('teamAName', teamAName); // 儲存隊伍名稱
+            updateUI();
+        });
+        teamB_name_input.addEventListener('input', (e) => {
+            teamBName = e.target.value;
+            localStorage.setItem('teamBName', teamBName); // 儲存隊伍名稱
+            updateUI();
+        });
+
+        // 比賽類型選擇事件
+        game_type_tt_radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                gameType = 'tableTennis';
+                localStorage.setItem('gameType', gameType); // 儲存遊戲類型
+                initGame(); // 重置遊戲以應用新規則
+            }
+        });
+        game_type_bm_radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                gameType = 'badminton';
+                localStorage.setItem('gameType', gameType); // 儲存遊戲類型
+                initGame(); // 重置遊戲以應用新規則
+            }
+        });
+
+        // 頁面載入完成後初始化遊戲
+        window.onload = initGame;
+    </script>
+    <script>
+        // PWA Manifest (Optional)
+        // This is a minimal manifest.json. For full PWA capabilities,
+        // you would also need a service worker.
+        const manifest = {
+            "name": "球賽記分板",
+            "short_name": "記分板",
+            "description": "桌球與羽球雙打比賽分數記錄應用程式",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#3b82f6",
+            "icons": [
+                {
+                    "src": "https://placehold.co/192x192/3b82f6/ffffff?text=Score",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                {
+                    "src": "https://placehold.co/512x512/3b82f6/ffffff?text=Score",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
+        const stringifiedManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringifiedManifest], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("link");
+        link.rel = "manifest";
+        link.href = url;
+        document.head.appendChild(link);
+    </script>
+</body>
+</html>
